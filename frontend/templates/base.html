@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}RateLab{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <script src="{{ url_for('static', filename='js/vendor/chart.umd.min.js') }}"></script>
+</head>
+<body>
+
+  <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle menu">&#9776;</button>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-mark">&#128202;</span>
+        <span class="brand-name">RateLab</span>
+      </div>
+      <p class="sidebar-tagline">Kinetics calculators, one tab at a time.</p>
+
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('home') }}" class="{{ 'active' if active_tab == 'home' else '' }}">
+          <span class="nav-icon">&#8962;</span> Dashboard
+        </a>
+        <a href="{{ url_for('order_predictor') }}" class="{{ 'active' if active_tab == 'order-predictor' else '' }}">
+          <span class="nav-icon">&fnof;</span> Order &amp; k Solver
+        </a>
+        
+      </nav>
+
+      <div class="sidebar-footer">
+        <p>Flask &middot; NumPy &middot; SciPy</p>
+      </div>
+    </aside>
+
+    <div class="app-main">
+      <main class="page-content">
+        {% block content %}{% endblock %}
+      </main>
+
+      <footer class="footer">
+        <p>RateLab &mdash; a kinetics toolkit for reaction engineering coursework.</p>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('mobile-nav-toggle').addEventListener('click', function () {
+      document.getElementById('sidebar').classList.toggle('open');
+    });
+  </script>
+</body>
+</html>

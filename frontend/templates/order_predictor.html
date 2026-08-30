@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Order & k Solver - RateLab{% endblock %}
+{% block content %}
+
+<section class="tool-header">
+  <span class="eyebrow">Constant-volume batch reactor &middot; Integral method</span>
+  <h1>Order &amp; Rate Constant Solver</h1>
+  <p>Paste your t vs. C data below and run it through either fit mode.</p>
+</section>
+
+<section class="tool-layout">
+
+  <form id="predictor-form" class="panel">
+
+    <div class="field-group">
+      <label>Fit mode</label>
+      <div class="mode-toggle">
+        <label class="mode-option">
+          <input type="radio" name="mode" value="auto" checked />
+          <span>Auto-detect<small>tries every model it can</small></span>
+        </label>
+        <label class="mode-option">
+          <input type="radio" name="mode" value="manual" />
+          <span>Manual<small>you choose the model</small></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="field-group" id="reaction-type-group" style="display:none;">
+      <label for="reaction-type">Reaction type</label>
+      <select id="reaction-type" name="reaction_type">
+        <option value="zero_order">Zero Order</option>
+        <option value="first_order">First Order</option>
+        <option value="second_order_uni">Second Order (Unimolecular, 2A &rarr; P)</option>
+        <option value="second_order_bimolecular">Second Order (Bimolecular, A + B &rarr; P)</option>
+        <option value="autocatalytic">Autocatalytic (A &rarr; P)</option>
+        <option value="series">Series (A &rarr; B &rarr; C)</option>
+        <option value="reversible">Reversible (A &#8646; B)</option>
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label for="t-input">
+        t <span class="var-name">&mdash; Time</span>
+      </label>
+      <p class="field-desc">Any consistent unit (s, min, hr) &mdash; just stay consistent, it affects the units of k.</p>
+      <textarea id="t-input" rows="3" placeholder="e.g. 0, 1, 2, 3, 4, 5">0, 1, 2, 3, 4, 5, 6, 7, 8</textarea>
+    </div>
+
+    <div class="field-group">
+      <label for="ca-input">
+        C<sub>A</sub> <span class="var-name">&mdash; Concentration of reactant A</span>
+      </label>
+      <p class="field-desc">Measured concentration of A at each time point above (same order, same length as t).</p>
+      <textarea id="ca-input" rows="3" placeholder="e.g. 2.0, 1.6, 1.3, ...">2.0, 1.72, 1.48, 1.27, 1.10, 0.94, 0.81, 0.70, 0.60</textarea>
+    </div>
+
+    <!-- Conditional extra fields -->
+    <div class="field-group extra-field" data-for="second_order_bimolecular">
+      <div class="field-note-box">
+        <strong>A + B &rarr; P</strong> (bimolecular, 1:1 stoichiometry) &mdash; one extra number:
+      </div>
+      <label for="cb0-input">
+        C<sub>B0</sub> <span class="var-name">&mdash; Initial concentration of reactant B</span>
+      </label>
+      <p class="field-desc">Starting concentration of B at t = 0. Must differ from C<sub>A0</sub> (first value in C<sub>A</sub>) &mdash; if equal, use "Second Order (Unimolecular)" instead.</p>
+      <input type="number" step="any" id="cb0-input" placeholder="e.g. 5.0" />
+    </div>
+
+    <div class="field-group extra-field" data-for="autocatalytic">
+      <div class="field-note-box">
+        <strong>A &rarr; P</strong>, rate = k&middot;C<sub>A</sub>&middot;C<sub>P</sub> &mdash; one extra number:
+      </div>
+      <label for="cp0-input">
+        C<sub>P0</sub> <span class="var-name">&mdash; Initial concentration of product P</span>
+      </label>
+      <p class="field-desc">Starting concentration of P at t = 0. Must be &gt; 0 &mdash; some product has to already be present to kick off the autocatalysis.</p>
+      <input type="number" step="any" id="cp0-input" placeholder="e.g. 0.1" />
+    </div>
+
+    <div class="field-group extra-field" data-for="series">
+      <div class="field-note-box">
+        <strong>A &rarr; B &rarr; C</strong> (both steps first order, C<sub>B0</sub> = 0 assumed) &mdash; one extra dataset:
+      </div>
+      <label for="cb-data-input">
+        C<sub>B</sub> data <span class="var-name">&mdash; Concentration of intermediate B over time</span>
+      </label>
+      <p class="field-desc">Measured concentration of intermediate B at each time point (same order as t) &mdash; typically rises, peaks, then falls.</p>
+      <textarea id="cb-data-input" rows="3" placeholder="e.g. 0, 0.3, 0.5, ..."></textarea>
+    </div>
+
+    <div class="field-group extra-field" data-for="reversible">
+      <div class="field-note-box">
+        <strong>A &#8646; B</strong> (first order both directions) &mdash; needs the equilibrium point:
+      </div>
+      <label for="cae-input">
+        C<sub>Ae</sub> <span class="var-name">&mdash; Equilibrium concentration of A</span>
+      </label>
+      <p class="field-desc">Where C<sub>A</sub> levels off once forward/reverse rates balance (read off the plateau). Must be less than C<sub>A0</sub>.</p>
+      <input type="number" step="any" id="cae-input" placeholder="e.g. 0.5" />
+
+      <label for="cb0-rev-input" style="margin-top:14px;">
+        C<sub>B0</sub> <span class="var-name">&mdash; Initial concentration of B (optional)</span>
+      </label>
+      <p class="field-desc">Starting concentration of B at t = 0. Defaults to 0 (pure A start) if left blank.</p>
+      <input type="number" step="any" id="cb0-rev-input" placeholder="e.g. 0" />
+    </div>
+
+    <div class="field-group" id="optional-hint">
+      <details class="hint-collapsible">
+        <summary>Tip: unlocking extra models in Auto-detect mode</summary>
+        <p>
+          Filling in any optional field above (C<sub>B0</sub>, C<sub>P0</sub>, C<sub>B</sub> data,
+          C<sub>Ae</sub>) makes the matching model get tried too. Leave them blank to only
+          compare Zero / First / Second (unimolecular) order.
+        </p>
+      </details>
+    </div>
+
+    <button type="submit" class="submit-btn">Run Solver</button>
+  </form>
+
+  <div class="panel" id="results-panel">
+    <div id="results-placeholder" class="results-placeholder">
+      <div class="placeholder-icon">&fnof;</div>
+      Your fit results and chart will show up here.
+    </div>
+    <div id="results-content" style="display:none;"></div>
+  </div>
+
+</section>
+
+
+
+<div class="chart-wrap">
+  <canvas id="chart-canvas" style="display:none;"></canvas>
+</div>
+
+<script src="{{ url_for('static', filename='js/order_predictor.js') }}"></script>
+{% endblock %}

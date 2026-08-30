@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - RateLab{% endblock %}
+{% block content %}
+<section class="hero">
+  <span class="eyebrow">Reaction Engineering Toolkit</span>
+  <h1>Figure out the rate law before your data does.</h1>
+  <p class="subtitle">
+    Drop in time vs. concentration data and let the integral method work out the
+    reaction order and rate constant for you &mdash; or pick a model yourself.
+  </p>
+  <a href="{{ url_for('order_predictor') }}" class="hero-btn">Open the Order &amp; k Solver &rarr;</a>
+</section>
+
+<section class="stat-strip">
+  <div class="stat-chip"><strong>7</strong><span>reaction models</span></div>
+  <div class="stat-chip"><strong>2</strong><span>fit modes</span></div>
+  <div class="stat-chip"><strong>R&sup2;</strong><span>ranked auto-fit</span></div>
+  <div class="stat-chip"><strong>0</strong><span>internet needed</span></div>
+</section>
+
+<section class="card-grid">
+  <a href="{{ url_for('order_predictor') }}" class="tool-card">
+    <div class="tool-card-icon">&fnof;</div>
+    <h2>Order &amp; k Solver</h2>
+    <p>
+      Determine reaction order and rate constant <em>k</em> from batch-reactor
+      data for zero, first, second (uni/bimolecular), autocatalytic, series,
+      and reversible reactions. Auto-detect the best fit or run one model manually.
+    </p>
+    <span class="card-cta">Open module &rarr;</span>
+  </a>
+
+  
+</section>
+{% endblock %}
