@@ -1,6 +1,7 @@
-[project] name = "ratelab" 
+[project] 
+name = "ratelab" 
 version = "1.0.0"
- requires-python = ">=3.12" 
- dependencies = [ "flask==3.0.3", "numpy==1.26.4", "scipy==1.13.1", ] 
+requires-python = ">=3.12" 
+dependencies = [ "flask==3.0.3", "numpy==1.26.4", "scipy==1.13.1", ] 
  [tool.vercel] 
  entrypoint = "backend.app:app" 
