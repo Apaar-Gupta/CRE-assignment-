@@ -23,6 +23,8 @@ def fit_first_order(t, C):
         "k": round(k, 6),
         "k_units": "1/time",
         "r_squared": fit["r_squared"],
+        "slope": round(fit["slope"], 6),
+        "intercept": round(fit["intercept"], 6),
         "plot": {
             "x_label": "t",
             "y_label": "ln(C)",

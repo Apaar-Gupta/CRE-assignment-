@@ -32,6 +32,8 @@ def fit_second_order_uni(t, C):
         "k": round(k, 6),
         "k_units": "1/(concentration*time)",
         "r_squared": fit["r_squared"],
+        "slope": round(fit["slope"], 6),
+        "intercept": round(fit["intercept"], 6),
         "plot": {
             "x_label": "t",
             "y_label": "1/C",
@@ -76,6 +78,8 @@ def fit_second_order_bimolecular(t, C_A, C_A0, C_B0):
         "k": round(float(k), 6),
         "k_units": "1/(concentration*time)",
         "r_squared": fit["r_squared"],
+        "slope": round(fit["slope"], 6),
+        "intercept": round(fit["intercept"], 6),
         "plot": {
             "x_label": "t",
             "y_label": "ln(C_B/C_A)",

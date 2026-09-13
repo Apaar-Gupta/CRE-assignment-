@@ -68,6 +68,8 @@ def fit_reversible(t, C_A, C_Ae, C_B0=0.0):
         "K_eq": round(float(K_eq), 6),
         "k_units": "1/time",
         "r_squared": fit["r_squared"],
+        "slope": round(fit["slope"], 6),
+        "intercept": round(fit["intercept"], 6),
         "plot": {
             "x_label": "t",
             "y_label": "ln[(C_A0-C_Ae)/(C_A-C_Ae)]",

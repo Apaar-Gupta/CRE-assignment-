@@ -1,8 +1,73 @@
 {% extends "base.html" %}
-{% block title %}Module 2 - RateLab{% endblock %}
+{% block title %}Differential Method Solver - RateLab{% endblock %}
 {% block content %}
-<section class="placeholder-page">
-  <h1>Module 2</h1>
-  <p>This tab is reserved for a future calculator or assignment.</p>
+
+<section class="tool-header">
+  <span class="eyebrow">Constant-volume batch reactor &middot; Differential method</span>
+  <h1>Order &amp; Rate Constant Solver &mdash; Differential Method</h1>
+  <p>Paste your t vs. C<sub>A</sub> data below &mdash; the order is fit directly as a continuous number (decimals allowed), no trial-and-error over guessed orders needed.</p>
 </section>
+
+<section class="tool-layout">
+
+  <form id="diff-predictor-form" class="panel">
+
+    <div class="field-group">
+      <label for="t-input">
+        t <span class="var-name">&mdash; Time</span>
+      </label>
+      <p class="field-desc">Any consistent unit (s, min, hr) &mdash; just stay consistent, it affects the units of k.</p>
+      <textarea id="t-input" rows="3" placeholder="e.g. 0, 1, 2, 3, 4, 5">0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10</textarea>
+    </div>
+
+    <div class="field-group">
+      <label for="ca-input">
+        C<sub>A</sub> <span class="var-name">&mdash; Concentration of reactant A</span>
+      </label>
+      <p class="field-desc">Measured concentration of A at each time point above (same order, same length as t). This is the only data this method needs.</p>
+      <textarea id="ca-input" rows="3" placeholder="e.g. 2.0, 1.6, 1.3, ...">2.0, 1.64, 1.35, 1.11, 0.91, 0.75, 0.62, 0.51, 0.42, 0.34, 0.28</textarea>
+    </div>
+
+    <div class="field-group">
+      <details class="hint-collapsible" open>
+        <summary>How this differs from the Integral Method</summary>
+        <p>
+          Instead of guessing an order, integrating the rate law, and checking which
+          guess linearizes the data, the differential method numerically estimates the
+          rate &minus;dC<sub>A</sub>/dt at every point directly from your data, then fits
+          ln(&minus;dC<sub>A</sub>/dt) = ln(k) + n&middot;ln(C<sub>A</sub>) in a single
+          regression. The slope of that line <em>is</em> the order n &mdash; so it comes
+          out as whatever decimal value best fits your data (e.g. 1.5, 2.3), not just
+          0, 1, or 2.
+        </p>
+      </details>
+    </div>
+
+    <button type="submit" class="submit-btn">Run Solver</button>
+  </form>
+
+  <div class="panel" id="results-panel">
+    <div id="results-placeholder" class="results-placeholder">
+      <div class="placeholder-icon">&fnof;</div>
+      Your fit results and chart will show up here.
+    </div>
+    <div id="results-content" style="display:none;"></div>
+  </div>
+
+</section>
+
+<details class="panel glossary-panel">
+  <summary class="glossary-title">Variable Glossary <span class="glossary-count">6</span></summary>
+  <p class="glossary-intro">Quick reference for every symbol used on this page.</p>
+  <div class="glossary-grid">
+    <div class="glossary-item"><span class="g-var">t</span><span class="g-def">Time elapsed since the reaction started.</span></div>
+    <div class="glossary-item"><span class="g-var">C<sub>A</sub></span><span class="g-def">Concentration of reactant A at time t (the only data you need to supply).</span></div>
+    <div class="glossary-item"><span class="g-var">&minus;dC<sub>A</sub>/dt</span><span class="g-def">The instantaneous rate of consumption of A, estimated numerically from your C<sub>A</sub> vs t data at every point.</span></div>
+    <div class="glossary-item"><span class="g-var">n</span><span class="g-def">Reaction order &mdash; fit directly as a continuous (possibly decimal) number from the slope of ln(rate) vs ln(C<sub>A</sub>).</span></div>
+    <div class="glossary-item"><span class="g-var">k</span><span class="g-def">Rate constant, recovered from the regression intercept: k = exp(intercept).</span></div>
+    <div class="glossary-item"><span class="g-var">R&sup2;</span><span class="g-def">Goodness of fit of the ln(rate) vs ln(C<sub>A</sub>) regression &mdash; closer to 1.0 means the nth-order model fits your data better.</span></div>
+  </div>
+</details>
+
+<script src="{{ url_for('static', filename='js/differential_predictor.js') }}"></script>
 {% endblock %}

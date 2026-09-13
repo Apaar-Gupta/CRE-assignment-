@@ -13,7 +13,7 @@
 
 <section class="stat-strip">
   <div class="stat-chip"><strong>7</strong><span>reaction models</span></div>
-  <div class="stat-chip"><strong>2</strong><span>fit modes</span></div>
+  <div class="stat-chip"><strong>2</strong><span>fit methods</span></div>
   <div class="stat-chip"><strong>R&sup2;</strong><span>ranked auto-fit</span></div>
   <div class="stat-chip"><strong>0</strong><span>internet needed</span></div>
 </section>
@@ -21,15 +21,26 @@
 <section class="card-grid">
   <a href="{{ url_for('order_predictor') }}" class="tool-card">
     <div class="tool-card-icon">&fnof;</div>
-    <h2>Order &amp; k Solver</h2>
+    <h2>Order &amp; k Solver <span class="method-tag">Integral</span></h2>
     <p>
       Determine reaction order and rate constant <em>k</em> from batch-reactor
       data for zero, first, second (uni/bimolecular), autocatalytic, series,
       and reversible reactions. Auto-detect the best fit or run one model manually.
+      Every model tested shows its own curve and full calculations.
     </p>
     <span class="card-cta">Open module &rarr;</span>
   </a>
 
-  
+  <a href="{{ url_for('project2') }}" class="tool-card">
+    <div class="tool-card-icon">&part;</div>
+    <h2>Order &amp; k Solver <span class="method-tag">Differential</span></h2>
+    <p>
+      Enter t vs. C<sub>A</sub> data only. The reaction order is fit directly
+      as a continuous number (decimals allowed, e.g. 1.5) by numerically
+      estimating the rate at each point &mdash; no trial-and-error over
+      guessed orders needed.
+    </p>
+    <span class="card-cta">Open module &rarr;</span>
+  </a>
 </section>
 {% endblock %}

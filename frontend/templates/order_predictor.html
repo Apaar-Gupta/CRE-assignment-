@@ -5,7 +5,7 @@
 <section class="tool-header">
   <span class="eyebrow">Constant-volume batch reactor &middot; Integral method</span>
   <h1>Order &amp; Rate Constant Solver</h1>
-  <p>Paste your t vs. C data below and run it through either fit mode.</p>
+  <p>Paste your t vs. C data below and run it through either fit mode — every model that gets tested shows its own curve, calculation table, and R&sup2;, with the best fit highlighted.</p>
 </section>
 
 <section class="tool-layout">
@@ -129,12 +129,6 @@
   </div>
 
 </section>
-
-
-
-<div class="chart-wrap">
-  <canvas id="chart-canvas" style="display:none;"></canvas>
-</div>
 
 <script src="{{ url_for('static', filename='js/order_predictor.js') }}"></script>
 {% endblock %}

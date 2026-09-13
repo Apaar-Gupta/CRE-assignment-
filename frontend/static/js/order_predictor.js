@@ -15,6 +15,10 @@ function getVal(id) {
   return v === "" ? null : Number(v);
 }
 
+function fmt(n) {
+  return typeof n === "number" ? n.toFixed(6) : n;
+}
+
 // ---------- Dynamic field show/hide ----------
 
 const reactionTypeSelect = document.getElementById("reaction-type");
@@ -46,14 +50,17 @@ updateVisibleFields();
 
 // ---------- Chart handling ----------
 
-let chartInstance = null;
+// One Chart.js instance per rendered result card, tracked so we can destroy
+// them all cleanly before re-rendering on the next submit.
+let chartInstances = [];
 
-function renderSingleSeriesChart(plot) {
-  const canvas = document.getElementById("chart-canvas");
-  canvas.style.display = "block";
-  if (chartInstance) chartInstance.destroy();
+function destroyAllCharts() {
+  chartInstances.forEach((c) => c.destroy());
+  chartInstances = [];
+}
 
-  chartInstance = new Chart(canvas.getContext("2d"), {
+function buildSingleSeriesChart(canvas, plot) {
+  const chart = new Chart(canvas.getContext("2d"), {
     type: "scatter",
     data: {
       datasets: [
@@ -84,13 +91,10 @@ function renderSingleSeriesChart(plot) {
       plugins: { legend: { labels: { color: "#1f271f" } } },
     },
   });
+  chartInstances.push(chart);
 }
 
-function renderMultiSeriesChart(plot) {
-  const canvas = document.getElementById("chart-canvas");
-  canvas.style.display = "block";
-  if (chartInstance) chartInstance.destroy();
-
+function buildMultiSeriesChart(canvas, plot) {
   const colors = ["#b4842c", "#1f5c4a", "#3d7a9e", "#a83e3e"];
   const datasets = plot.series.map((s, i) => ({
     label: s.name,
@@ -103,7 +107,7 @@ function renderMultiSeriesChart(plot) {
     showLine: s.type === "line",
   }));
 
-  chartInstance = new Chart(canvas.getContext("2d"), {
+  const chart = new Chart(canvas.getContext("2d"), {
     type: "scatter",
     data: { datasets },
     options: {
@@ -116,6 +120,59 @@ function renderMultiSeriesChart(plot) {
       plugins: { legend: { labels: { color: "#1f271f" } } },
     },
   });
+  chartInstances.push(chart);
+}
+
+// ---------- Calculation table rendering ----------
+// Shows the exact numbers used to draw each model's curve: t, the
+// transformed variable per the integral form, the fitted line, and the
+// residual — so every equation tested can be inspected, not just charted.
+
+function calcTableHtml(result) {
+  const plot = result.plot;
+  if (!plot) return "";
+
+  if (plot.series) {
+    const find = (name) => (plot.series.find((s) => s.name === name) || {}).y_data || [];
+    const caData = find("C_A (data)");
+    const caFit = find("C_A (fit)");
+    const cbData = find("C_B (data)");
+    const cbFit = find("C_B (fit)");
+    const rows = plot.x_data
+      .map(
+        (t, i) =>
+          `<tr><td>${fmt(t)}</td><td>${fmt(caData[i])}</td><td>${fmt(caFit[i])}</td><td>${fmt(cbData[i])}</td><td>${fmt(cbFit[i])}</td></tr>`
+      )
+      .join("");
+    return `<div class="calc-table-scroll"><table class="calc-table"><thead><tr><th>t</th><th>C_A (data)</th><th>C_A (fit)</th><th>C_B (data)</th><th>C_B (fit)</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  const rows = plot.x_data
+    .map((t, i) => {
+      const y = plot.y_data[i];
+      const yf = plot.fit_line[i];
+      const resid = y - yf;
+      return `<tr><td>${fmt(t)}</td><td>${fmt(y)}</td><td>${fmt(yf)}</td><td>${fmt(resid)}</td></tr>`;
+    })
+    .join("");
+  return `<div class="calc-table-scroll"><table class="calc-table"><thead><tr><th>t</th><th>${plot.y_label} (data)</th><th>${plot.y_label} (fit)</th><th>Residual</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function regressionSummaryHtml(result) {
+  if (result.slope !== undefined && result.intercept !== undefined) {
+    return `
+      <div class="result-row"><span>slope</span><strong>${result.slope}</strong></div>
+      <div class="result-row"><span>intercept</span><strong>${result.intercept}</strong></div>
+    `;
+  }
+  if (result.slope_step1 !== undefined) {
+    return `
+      <div class="result-row"><span>slope (step 1, ln C_A vs t)</span><strong>${result.slope_step1}</strong></div>
+      <div class="result-row"><span>intercept (step 1)</span><strong>${result.intercept_step1}</strong></div>
+      <p class="field-desc" style="margin-top:6px;">${result.fit_method_note || ""}</p>
+    `;
+  }
+  return "";
 }
 
 // ---------- Result card rendering ----------
@@ -137,29 +194,6 @@ function kRowsHtml(result) {
   return rows;
 }
 
-function resultCardHtml(result, isBest) {
-  const partialNote =
-    result.uses_full_dataset === false
-      ? '<div class="result-row" style="color:#b4842c;"><span></span><span>fits C_A only — ignores any extra data you provided</span></div>'
-      : "";
-  const priorityNote = result.priority_note
-    ? `<div class="hint-box" style="margin-top:10px; margin-bottom:0;">${result.priority_note}</div>`
-    : "";
-  const summaryText = `${result.reaction_type} — ${kRowsPlainText(result)}R² = ${result.r_squared} — ${result.equation}`;
-
-  return `
-    <div class="result-card ${isBest ? "best-fit" : ""}">
-      <h3>${result.reaction_type} ${isBest ? '<span class="badge">BEST FIT</span>' : ""}</h3>
-      ${kRowsHtml(result)}
-      <div class="result-row"><span>R&sup2;</span><strong>${result.r_squared}</strong></div>
-      <div class="equation">${result.equation}</div>
-      ${partialNote}
-      ${priorityNote}
-      <button type="button" class="copy-btn" data-copy-text="${summaryText.replace(/"/g, "&quot;")}">Copy result</button>
-    </div>
-  `;
-}
-
 function kRowsPlainText(result) {
   if (result.k !== undefined) return `k = ${result.k} ${result.k_units || ""} — `;
   let out = "";
@@ -169,47 +203,93 @@ function kRowsPlainText(result) {
   return out ? out + "— " : "";
 }
 
+function resultCardHtml(result, isBest, chartId) {
+  const partialNote =
+    result.uses_full_dataset === false
+      ? '<div class="result-row" style="color:#b4842c;"><span></span><span>fits C_A only — ignores any extra data you provided</span></div>'
+      : "";
+  const priorityNote = result.priority_note
+    ? `<div class="hint-box" style="margin-top:10px; margin-bottom:0;">${result.priority_note}</div>`
+    : "";
+  const summaryText = `${result.reaction_type} — ${kRowsPlainText(result)}R² = ${result.r_squared} — ${result.equation}`;
+
+  const chartHtml = result.plot ? `<div class="mini-chart-wrap"><canvas id="${chartId}"></canvas></div>` : "";
+  const calcHtml = result.plot
+    ? `<details class="calc-details">
+         <summary>Show calculation table (${result.plot.x_data.length} points)</summary>
+         ${calcTableHtml(result)}
+       </details>`
+    : "";
+
+  return `
+    <div class="result-card ${isBest ? "best-fit" : ""}">
+      <h3>${result.reaction_type} ${isBest ? '<span class="badge">BEST FIT</span>' : ""}</h3>
+      ${kRowsHtml(result)}
+      <div class="result-row"><span>R&sup2;</span><strong>${result.r_squared}</strong></div>
+      <div class="equation">${result.equation}</div>
+      ${regressionSummaryHtml(result)}
+      ${partialNote}
+      ${priorityNote}
+      ${chartHtml}
+      ${calcHtml}
+      <button type="button" class="copy-btn" data-copy-text="${summaryText.replace(/"/g, "&quot;")}">Copy result</button>
+    </div>
+  `;
+}
+
 function renderResults(payload) {
   const container = document.getElementById("results-content");
   document.getElementById("results-placeholder").style.display = "none";
   container.style.display = "block";
+  destroyAllCharts();
 
   let html = "";
-  let mainResultForChart = null;
+  const renderList = []; // [result, isBest] pairs, in render order
 
   if (payload.mode === "auto") {
     const { best_fit, all_results, errors } = payload.result;
 
-    if (best_fit) {
-      html += resultCardHtml(best_fit, true);
-      mainResultForChart = best_fit;
-    }
+    if (best_fit) renderList.push([best_fit, true]);
+    const others = all_results.filter((r) => r.reaction_type !== (best_fit && best_fit.reaction_type));
+    others.forEach((r) => renderList.push([r, false]));
 
-    const others = all_results.filter((r) => r !== best_fit);
+    let idx = 0;
+    if (best_fit) {
+      html += resultCardHtml(best_fit, true, `model-chart-${idx}`);
+      idx++;
+    }
     if (others.length > 0) {
       html += '<div class="other-results-title">Other models tried</div>';
-      others.forEach((r) => (html += resultCardHtml(r, false)));
+      others.forEach((r) => {
+        html += resultCardHtml(r, false, `model-chart-${idx}`);
+        idx++;
+      });
     }
 
     if (errors && errors.length > 0) {
+      html += '<div class="other-results-title">Rejected (no valid R&sup2;)</div>';
       errors.forEach((e) => {
         html += `<div class="error-box"><strong>${e.reaction_type}:</strong> ${e.error}</div>`;
       });
     }
   } else {
-    html += resultCardHtml(payload.result, false);
-    mainResultForChart = payload.result;
+    renderList.push([payload.result, false]);
+    html += resultCardHtml(payload.result, false, "model-chart-0");
   }
 
   container.innerHTML = html;
 
-  if (mainResultForChart && mainResultForChart.plot) {
-    if (mainResultForChart.plot.series) {
-      renderMultiSeriesChart(mainResultForChart.plot);
+  // Instantiate each chart now that its <canvas> placeholder is in the DOM.
+  renderList.forEach(([r], i) => {
+    if (!r.plot) return;
+    const canvas = document.getElementById(`model-chart-${i}`);
+    if (!canvas) return;
+    if (r.plot.series) {
+      buildMultiSeriesChart(canvas, r.plot);
     } else {
-      renderSingleSeriesChart(mainResultForChart.plot);
+      buildSingleSeriesChart(canvas, r.plot);
     }
-  }
+  });
 }
 
 function renderError(message) {
@@ -217,11 +297,7 @@ function renderError(message) {
   const container = document.getElementById("results-content");
   container.style.display = "block";
   container.innerHTML = `<div class="error-box">${message}</div>`;
-  document.getElementById("chart-canvas").style.display = "none";
-  if (chartInstance) {
-    chartInstance.destroy();
-    chartInstance = null;
-  }
+  destroyAllCharts();
 }
 
 document.getElementById("results-content").addEventListener("click", (e) => {

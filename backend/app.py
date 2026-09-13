@@ -17,6 +17,7 @@ from flask import Flask, render_template, request, jsonify
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from models.fitter import run_manual, run_auto  # noqa: E402
+from models.differential_method import fit_differential_method  # noqa: E402
 from utils.validators import ValidationError, require_arrays_same_length  # noqa: E402
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -90,6 +91,42 @@ def predict():
                 return jsonify({"error": "reaction_type is required in manual mode."}), 400
             result = run_manual(reaction_type, payload)
         return jsonify({"mode": mode, "result": result})
+    except (ValueError, ValidationError) as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"error": f"Unexpected error: {exc}"}), 500
+
+
+@app.route("/api/predict-differential", methods=["POST"])
+def predict_differential():
+    """
+    Project 2: Order & k Predictor via the DIFFERENTIAL method.
+
+    Unlike /api/predict (integral method, which tries several integer/named
+    orders and ranks them by R^2), this endpoint takes only t and C_A,
+    numerically estimates the rate -dC_A/dt at each point, and fits
+    ln(rate) = ln(k) + n*ln(C_A) directly — giving a single continuous
+    order n (which can be a decimal, e.g. 1.5) and k in one regression,
+    with no trial-and-error over guessed orders needed.
+    """
+    data = request.get_json(force=True, silent=True)
+    if not data:
+        return jsonify({"error": "No JSON body received."}), 400
+
+    t = data.get("t")
+    C_A = data.get("C_A")
+
+    if not t or not C_A:
+        return jsonify({"error": "Both 't' and 'C_A' data arrays are required."}), 400
+
+    try:
+        require_arrays_same_length(("t", t), ("C_A", C_A))
+    except ValidationError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    try:
+        result = fit_differential_method(t, C_A)
+        return jsonify({"result": result})
     except (ValueError, ValidationError) as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:  # noqa: BLE001

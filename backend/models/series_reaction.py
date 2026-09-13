@@ -72,6 +72,9 @@ def fit_series_reaction(t, C_A, C_B):
         "r_squared": round(float((fit1["r_squared"] + r2_b) / 2), 6),
         "r_squared_step1_A": fit1["r_squared"],
         "r_squared_step2_B": r2_b,
+        "slope_step1": round(fit1["slope"], 6),
+        "intercept_step1": round(fit1["intercept"], 6),
+        "fit_method_note": "k1 from linear regression on ln(C_A) vs t (step 1). k2 from nonlinear regression (scipy curve_fit) on C_B vs t, holding k1 fixed (step 2 has no linear transform).",
         "plot": {
             "x_label": "t",
             "y_label": "Concentration",
